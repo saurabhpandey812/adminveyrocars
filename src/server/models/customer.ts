@@ -6,10 +6,11 @@ const CustomerSchema = new Schema(
     fullName: { type: String, required: true },
     mobile: { type: String, required: true },
     email: { type: String, required: true },
+    password: { type: String, default: "" },
     createdAt: { type: String, required: true },
     demo: { type: Boolean, default: false },
   },
-  { versionKey: false },
+  { versionKey: false, strict: false },
 );
 
 export type CustomerDoc = InferSchemaType<typeof CustomerSchema>;
