@@ -5,23 +5,38 @@ import { env, hasAdminCreds } from "@/config";
 import { COOKIE, getSecret, signToken } from "@/lib/admin-auth/token";
 import { verifyAdminLogin } from "@/server/admin-users";
 
+function isNextRedirect(err: unknown) {
+  return typeof err === "object" && err !== null && "digest" in err && String((err as { digest?: string }).digest).startsWith("NEXT_REDIRECT");
+}
+
 export async function loginAction(_: { error?: string }, fd: FormData): Promise<{ error?: string }> {
-  if (!hasAdminCreds() || !getSecret()) return { error: "Admin credentials are not configured on the server." };
-  const email = String(fd.get("email") ?? "").trim().toLowerCase();
-  const pw = String(fd.get("password") ?? "");
-  const user = await verifyAdminLogin(email, pw);
-  if (!user) {
-    await new Promise((r) => setTimeout(r, 600));
-    return { error: "Incorrect email or password." };
+  try {
+    if (!hasAdminCreds() || !getSecret()) {
+      return { error: "Admin credentials are not configured on the server." };
+    }
+    const email = String(fd.get("email") ?? "").trim().toLowerCase();
+    const pw = String(fd.get("password") ?? "");
+    if (!email || !pw) return { error: "Email and password are required." };
+
+    const user = await verifyAdminLogin(email, pw);
+    if (!user) {
+      await new Promise((r) => setTimeout(r, 600));
+      return { error: "Incorrect email or password." };
+    }
+
+    (await cookies()).set(COOKIE, await signToken(), {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: env.isProd,
+      path: "/",
+      maxAge: 60 * 60 * 24 * 7,
+    });
+    redirect("/admin");
+  } catch (err) {
+    if (isNextRedirect(err)) throw err;
+    console.error("[auth] loginAction:", err);
+    return { error: "Sign in failed. Please try again." };
   }
-  (await cookies()).set(COOKIE, await signToken(), {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: env.isProd,
-    path: "/",
-    maxAge: 60 * 60 * 24 * 7,
-  });
-  redirect("/admin");
 }
 
 export async function logoutAction() {

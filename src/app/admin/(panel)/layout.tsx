@@ -6,7 +6,7 @@ export default async function PanelLayout({ children }: { children: React.ReactN
   await requireAdmin();
   const profile = await getAdminProfile();
   return (
-    <AdminShell adminEmail={profile.email} adminName={profile.displayName}>
+    <AdminShell adminEmail={profile.email} adminName={profile.name}>
       {children}
     </AdminShell>
   );

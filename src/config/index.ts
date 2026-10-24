@@ -23,7 +23,10 @@ export const NEXT_PUBLIC_ADMIN_URL = "https://adminveyrocars.vercel.app";
 // Local — live band karo to upar comment, ye uncomment:
 // export const NEXT_PUBLIC_ADMIN_URL = "http://localhost:3002";
 
-/** Bootstrap admin (pehli seed). Profile se email/password change ho sakte hain. */
+/**
+ * Bootstrap admin — pehli baar DB `adminusers` table me seed hota hai
+ * (email, name, role, password plain). Baad me Profile se change ho sakta hai.
+ */
 export const ADMIN_EMAIL = "admin@example.com";
 export const ADMIN_PASSWORD = "admin12345";
 export const ADMIN_SESSION_SECRET = "dev-only-secret-change-me";

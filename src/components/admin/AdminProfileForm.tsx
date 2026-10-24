@@ -36,7 +36,7 @@ export function AdminProfileForm({ profile }: { profile: AdminProfile }) {
       <section className="card grid gap-4 p-5 sm:grid-cols-2">
         <div className="col-span-full flex items-center gap-3 border-b border-line pb-4">
           <span className="grid h-14 w-14 place-items-center bg-ink text-lg font-semibold text-bone">
-            {profile.displayName
+            {profile.name
               .split(/\s+/)
               .map((w) => w[0])
               .join("")
@@ -70,8 +70,8 @@ export function AdminProfileForm({ profile }: { profile: AdminProfile }) {
         <Field
           id="displayName"
           name="displayName"
-          label="Display name"
-          defaultValue={profile.displayName}
+          label="Name"
+          defaultValue={profile.name}
           error={e.displayName}
           className="sm:col-span-2"
           autoComplete="name"
