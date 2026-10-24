@@ -7,19 +7,18 @@ declare global {
   var __mongooseConn: Promise<typeof mongoose> | undefined;
 }
 
-/** Serverless-friendly timeouts (login itself does not wait on Mongo). */
-const CONNECT_OPTS = {
-  bufferCommands: false,
-  serverSelectionTimeoutMS: 12_000,
-  connectTimeoutMS: 12_000,
-  socketTimeoutMS: 45_000,
-  maxPoolSize: 10,
-} as const;
-
+/**
+ * Match verocars (works on Vercel).
+ * `family: 4` = IPv4 only. Without it, Atlas often shows a fake
+ * "IP not whitelisted" error on Vercel serverless.
+ */
 export async function connectDB() {
   if (mongoose.connection.readyState === 1) return mongoose;
   if (!global.__mongooseConn) {
-    global.__mongooseConn = mongoose.connect(env.mongodbUri, CONNECT_OPTS);
+    global.__mongooseConn = mongoose.connect(env.mongodbUri, {
+      bufferCommands: false,
+      family: 4,
+    });
   }
   try {
     return await global.__mongooseConn;
