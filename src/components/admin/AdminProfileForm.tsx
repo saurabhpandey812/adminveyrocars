@@ -3,11 +3,11 @@ import { useActionState, useEffect, useRef } from "react";
 import { Field } from "@/components/ui/Field";
 import { PasswordField } from "@/components/ui/PasswordField";
 import { updateProfileAction, type ProfileFormState } from "@/server/actions/profile";
-import { adminRoles, type AdminProfile } from "@/types/admin-user";
+import { userRoles, type UserProfile } from "@/types/user-account";
 
 const initial: ProfileFormState = {};
 
-export function AdminProfileForm({ profile }: { profile: AdminProfile }) {
+export function AdminProfileForm({ profile }: { profile: UserProfile }) {
   const [state, action, pending] = useActionState(updateProfileAction, initial);
   const formRef = useRef<HTMLFormElement>(null);
   const e = state.errors ?? {};
@@ -55,7 +55,7 @@ export function AdminProfileForm({ profile }: { profile: AdminProfile }) {
             Role
           </label>
           <select id="role" name="role" defaultValue={profile.role} className="field capitalize" aria-invalid={!!e.role}>
-            {adminRoles.map((r) => (
+            {userRoles.map((r) => (
               <option key={r} value={r}>
                 {r}
               </option>
@@ -91,7 +91,7 @@ export function AdminProfileForm({ profile }: { profile: AdminProfile }) {
 
       <section className="card grid gap-4 p-5 sm:grid-cols-2">
         <h2 className="display col-span-full text-2xl">Change password</h2>
-        <p className="col-span-full -mt-2 text-sm text-mute">Leave blank to keep your current password.</p>
+        <p className="col-span-full -mt-2 text-sm text-mute">Leave blank to keep your current password. Stored as plain text for now.</p>
         <PasswordField id="currentPassword" name="currentPassword" label="Current password" error={e.currentPassword} autoComplete="current-password" className="sm:col-span-2" />
         <PasswordField id="newPassword" name="newPassword" label="New password" error={e.newPassword} autoComplete="new-password" />
         <PasswordField id="confirmPassword" name="confirmPassword" label="Confirm new password" error={e.confirmPassword} autoComplete="new-password" />

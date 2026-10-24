@@ -1,12 +1,22 @@
 import { AdminShell } from "@/components/admin/AdminShell";
-import { getAdminProfile } from "@/server/admin-users";
+import { env } from "@/config";
+import { getUserProfile } from "@/server/users";
 import { requireAdmin } from "@/server/admin";
 
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   await requireAdmin();
-  const profile = await getAdminProfile();
+  // Never block shell on DB — config always available
+  let email: string = env.admin.email;
+  let name = "Admin";
+  try {
+    const profile = await getUserProfile();
+    email = profile.email || email;
+    name = profile.name || name;
+  } catch {
+    /* config fallback */
+  }
   return (
-    <AdminShell adminEmail={profile.email} adminName={profile.name}>
+    <AdminShell adminEmail={email} adminName={name}>
       {children}
     </AdminShell>
   );

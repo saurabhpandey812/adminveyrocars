@@ -1,6 +1,6 @@
 import mongoose, { Schema, type Model } from "mongoose";
 
-const AdminUserSchema = new Schema(
+const UserSchema = new Schema(
   {
     id: { type: String, required: true, unique: true, index: true },
     email: { type: String, required: true, unique: true, index: true },
@@ -12,12 +12,8 @@ const AdminUserSchema = new Schema(
     createdAt: { type: String, required: true },
     updatedAt: { type: String, required: true },
   },
-  { versionKey: false, strict: false },
+  { versionKey: false, collection: "users" },
 );
 
-if (mongoose.models.AdminUser) {
-  delete mongoose.models.AdminUser;
-}
-
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const AdminUserModel: Model<any> = mongoose.model("AdminUser", AdminUserSchema);
+export const UserModel: Model<any> = mongoose.models.User ?? mongoose.model("User", UserSchema);

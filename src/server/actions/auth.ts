@@ -3,10 +3,15 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { env, hasAdminCreds } from "@/config";
 import { COOKIE, getSecret, signToken } from "@/lib/admin-auth/token";
-import { verifyAdminLogin } from "@/server/admin-users";
+import { verifyUserLogin } from "@/server/users";
 
 function isNextRedirect(err: unknown) {
-  return typeof err === "object" && err !== null && "digest" in err && String((err as { digest?: string }).digest).startsWith("NEXT_REDIRECT");
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "digest" in err &&
+    String((err as { digest?: string }).digest).startsWith("NEXT_REDIRECT")
+  );
 }
 
 export async function loginAction(_: { error?: string }, fd: FormData): Promise<{ error?: string }> {
@@ -18,9 +23,10 @@ export async function loginAction(_: { error?: string }, fd: FormData): Promise<
     const pw = String(fd.get("password") ?? "");
     if (!email || !pw) return { error: "Email and password are required." };
 
-    const user = await verifyAdminLogin(email, pw);
+    // Config / users table — never throws for DB issues
+    const user = await verifyUserLogin(email, pw);
     if (!user) {
-      await new Promise((r) => setTimeout(r, 600));
+      await new Promise((r) => setTimeout(r, 400));
       return { error: "Incorrect email or password." };
     }
 
