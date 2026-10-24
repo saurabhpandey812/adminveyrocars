@@ -15,24 +15,45 @@ export interface DB {
   customers: Customer[];
 }
 
+declare global {
+  // eslint-disable-next-line no-var
+  var __veyroSeeded: boolean | undefined;
+  // eslint-disable-next-line no-var
+  var __veyroBackfilled: boolean | undefined;
+}
+
 function strip<T extends { id: string }>(doc: T & { _id?: unknown; __v?: unknown }): T {
   const { _id: _a, __v: _b, ...rest } = doc as T & { _id?: unknown; __v?: unknown };
   return rest as T;
 }
 
+const EMPTY: DB = { cars: [], bookings: [], customers: [] };
+
 async function ensureSeeded() {
-  const count = await CarModel.countDocuments();
-  if (count > 0) return;
+  if (global.__veyroSeeded) return;
+  const count = await CarModel.countDocuments().maxTimeMS(4000);
+  if (count > 0) {
+    global.__veyroSeeded = true;
+    return;
+  }
   const { customers, bookings } = seedBookings(seedCars);
   await CarModel.insertMany(seedCars);
   if (customers.length) await CustomerModel.insertMany(customers);
   if (bookings.length) await BookingModel.insertMany(bookings);
+  global.__veyroSeeded = true;
 }
 
-/** Fill carNumber on older docs that were seeded before the field existed. */
 async function backfillCarNumbers() {
-  const missing = await CarModel.find({ $or: [{ carNumber: { $exists: false } }, { carNumber: "" }, { carNumber: null }] }).lean();
-  if (!missing.length) return;
+  if (global.__veyroBackfilled) return;
+  const missing = await CarModel.find({
+    $or: [{ carNumber: { $exists: false } }, { carNumber: "" }, { carNumber: null }],
+  })
+    .maxTimeMS(4000)
+    .lean();
+  if (!missing.length) {
+    global.__veyroBackfilled = true;
+    return;
+  }
   await Promise.all(
     missing.map((c, i) => {
       const fromSeed = seedCars.find((s) => s.id === c.id || s.slug === c.slug);
@@ -40,28 +61,33 @@ async function backfillCarNumbers() {
       return CarModel.updateOne({ id: c.id }, { $set: { carNumber } });
     }),
   );
+  global.__veyroBackfilled = true;
 }
 
 export async function readDB(): Promise<DB> {
-  await connectDB();
-  await ensureSeeded();
-  await backfillCarNumbers();
-  const [cars, bookings, customers] = await Promise.all([
-    CarModel.find().lean(),
-    BookingModel.find().lean(),
-    CustomerModel.find().lean(),
-  ]);
-  return {
-    cars: cars.map((c) => {
-      const car = strip(c as unknown as Car);
-      return { ...car, carNumber: car.carNumber || "—" };
-    }),
-    bookings: bookings.map((b) => strip(b as unknown as Booking)),
-    customers: customers.map((c) => strip(c as unknown as Customer)),
-  };
+  try {
+    await connectDB();
+    await ensureSeeded();
+    await backfillCarNumbers();
+    const [cars, bookings, customers] = await Promise.all([
+      CarModel.find().lean(),
+      BookingModel.find().lean(),
+      CustomerModel.find().lean(),
+    ]);
+    return {
+      cars: cars.map((c) => {
+        const car = strip(c as unknown as Car);
+        return { ...car, carNumber: car.carNumber || "—" };
+      }),
+      bookings: bookings.map((b) => strip(b as unknown as Booking)),
+      customers: customers.map((c) => strip(c as unknown as Customer)),
+    };
+  } catch (err) {
+    console.error("[db] readDB:", err);
+    return EMPTY;
+  }
 }
 
-/** Full replace of collections after an in-memory mutation. Prefer targeted helpers for hot paths. */
 export async function writeDB(db: DB) {
   await connectDB();
   await Promise.all([CarModel.deleteMany({}), BookingModel.deleteMany({}), CustomerModel.deleteMany({})]);

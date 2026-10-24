@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { env, hasAdminCreds } from "@/config";
 import { COOKIE, getSecret, signToken } from "@/lib/admin-auth/token";
-import { verifyUserLogin } from "@/server/users";
+import { matchesConfigCredentials, syncConfigUserToDb, verifyUserLogin } from "@/server/users";
 
 function isNextRedirect(err: unknown) {
   return (
@@ -23,10 +23,23 @@ export async function loginAction(_: { error?: string }, fd: FormData): Promise<
     const pw = String(fd.get("password") ?? "");
     if (!email || !pw) return { error: "Email and password are required." };
 
-    // Config / users table — never throws for DB issues
+    // Fast path: config credentials — no DB round-trip before cookie/redirect
+    if (matchesConfigCredentials(email, pw)) {
+      (await cookies()).set(COOKIE, await signToken(), {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: env.isProd,
+        path: "/",
+        maxAge: 60 * 60 * 24 * 7,
+      });
+      // Background sync — do not await (keeps login snappy)
+      void syncConfigUserToDb();
+      redirect("/admin");
+    }
+
     const user = await verifyUserLogin(email, pw);
     if (!user) {
-      await new Promise((r) => setTimeout(r, 400));
+      await new Promise((r) => setTimeout(r, 300));
       return { error: "Incorrect email or password." };
     }
 

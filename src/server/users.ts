@@ -107,14 +107,13 @@ export async function getPrimaryUser(): Promise<UserAccount> {
 }
 
 /**
- * Login: config credentials win first (no DB required).
- * Also accept plain password match from `users` table.
+ * Extra users from `users` table (plain password).
+ * Config path is handled in loginAction without awaiting DB.
  */
 export async function verifyUserLogin(email: string, password: string): Promise<UserAccount | null> {
   const normalized = email.trim().toLowerCase();
 
   if (matchesConfigCredentials(normalized, password)) {
-    void syncConfigUserToDb();
     return configUser();
   }
 
