@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { Field } from "@/components/ui/Field";
-import { AdminImage } from "@/components/admin/AdminImage";
+import { CarPhotosField } from "@/components/admin/CarPhotosField";
 import { saveCarAction } from "@/server/actions/cars";
 import { carStatuses, categories, fuels, transmissions, type CarFormState } from "@/lib/validations/car";
 import type { Car } from "@/types/car";
@@ -127,42 +127,10 @@ export function CarForm({ car }: { car?: Car }) {
           </div>
         </section>
 
-        {/* Photos + actions */}
-        <section className="card grid gap-3 p-4 xl:col-span-12 lg:grid-cols-[1fr_auto] lg:items-end">
-          <div className="min-w-0">
-            <h2 className="display mb-3 text-xl">Photos</h2>
-            {car && car.images.length > 0 && (
-              <ul className="mb-3 grid grid-cols-3 gap-2 sm:grid-cols-6 lg:grid-cols-8">
-                {car.images.map((img) => (
-                  <li key={img.src}>
-                    <div className="relative aspect-[4/3] overflow-hidden bg-ink-2">
-                      <AdminImage src={img.src} alt={img.alt} />
-                    </div>
-                    <label className="mt-1 flex items-center gap-1.5 text-[11px]">
-                      <input type="checkbox" name="keep" value={img.src} defaultChecked className="accent-brass" /> Keep
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <label htmlFor="newImages" className="label !mb-1 text-xs">
-              Add photos
-            </label>
-            <input
-              id="newImages"
-              name="newImages"
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/avif"
-              multiple
-              className="field !min-h-9 py-1.5 text-sm"
-            />
-            {e.images && (
-              <p role="alert" className="err">
-                {e.images}
-              </p>
-            )}
-          </div>
-          <div className="flex shrink-0 gap-2">
+        <section className="card grid gap-4 p-4 xl:col-span-12">
+          <h2 className="display text-xl">Photos</h2>
+          <CarPhotosField images={car?.images} error={e.images} />
+          <div className="flex flex-wrap gap-2 border-t border-line pt-4">
             <button className="btn btn-dark !min-h-10 px-5" disabled={pending}>
               {pending ? "Saving…" : car ? "Save changes" : "Add car"}
             </button>

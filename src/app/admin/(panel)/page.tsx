@@ -31,22 +31,34 @@ export default async function Dashboard() {
         <StatCard label="Customers" value={String(d.customers)} icon={Users} />
       </section>
 
-      <section className="mt-6 grid items-start gap-6 xl:grid-cols-3">
-        <div className="card p-5 xl:col-span-2"><h2 className="display mb-3 text-2xl">Revenue</h2><RevenueChart data={d.monthly} /></div>
-        <div className="grid gap-4 self-start">
-          <div className="card p-4">
-            <h2 className="display mb-2 text-xl">By status</h2>
-            <Donut data={d.statusCounts} />
+      <section className="mt-5 grid items-stretch gap-4 xl:grid-cols-3">
+        <div className="card flex h-full flex-col p-5 xl:col-span-2">
+          <h2 className="display mb-3 text-2xl">Revenue</h2>
+          <div className="flex min-h-0 flex-1 items-center">
+            <RevenueChart data={d.monthly} />
           </div>
-          <div className="card p-4">
+        </div>
+        <div className="flex h-full min-h-0 flex-col gap-4">
+          <div className="card flex min-h-0 flex-1 flex-col p-4">
+            <h2 className="display mb-2 text-xl">By status</h2>
+            <div className="flex min-h-0 flex-1 items-center">
+              <Donut data={d.statusCounts} />
+            </div>
+          </div>
+          <div className="card flex min-h-0 flex-1 flex-col p-4">
             <h2 className="display mb-3 text-xl">Top cars</h2>
-            <BarList items={d.topCars} />
+            <div className="min-h-0 flex-1 overflow-auto">
+              <BarList items={d.topCars} />
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="mt-6">
-        <div className="card p-5"><h2 className="display mb-4 text-2xl">Bookings</h2><BarColumns items={d.monthly.map((m) => ({ label: m.label, value: m.bookings }))} /></div>
+      <section className="mt-5">
+        <div className="card p-5">
+          <h2 className="display mb-4 text-2xl">Bookings</h2>
+          <BarColumns items={d.monthly.map((m) => ({ label: m.label, value: m.bookings }))} />
+        </div>
       </section>
 
       <section className="mt-6 grid gap-6 xl:grid-cols-2">

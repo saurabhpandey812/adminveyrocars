@@ -21,8 +21,11 @@ export async function saveCarAction(_: CarFormState, fd: FormData): Promise<CarF
   await requireAdmin();
   const id = String(fd.get("id") ?? "");
   const { errors, data } = parseCarForm(fd);
+  const coverRaw = fd.get("coverImage");
+  const coverFile = coverRaw instanceof File && coverRaw.size > 0 ? coverRaw : null;
   const files = fd.getAll("newImages").filter((f): f is File => f instanceof File && f.size > 0);
-  for (const f of files) {
+  const allFiles = coverFile ? [coverFile, ...files] : files;
+  for (const f of allFiles) {
     if (!TYPES[f.type]) errors.images = "Photos must be JPG, PNG, WebP or AVIF.";
     else if (f.size > 5 * 1024 * 1024) errors.images = "Each photo must be under 5 MB.";
   }
@@ -31,19 +34,22 @@ export async function saveCarAction(_: CarFormState, fd: FormData): Promise<CarF
   if (id && !existing) errors.form = "This car no longer exists.";
   const keep = new Set(fd.getAll("keep").map(String));
   const kept = existing ? existing.images.filter((i) => keep.has(i.src)) : [];
-  if (kept.length + files.length > 8) errors.images = "A car can have at most 8 photos.";
+  if (kept.length + allFiles.length > 8) errors.images = "A car can have at most 8 photos.";
   if (Object.keys(errors).length) return { errors };
 
   const slug = existing?.slug ?? uniqueSlug(`${data.brand} ${data.model}`, db.cars.map((c) => c.slug));
   const alt = `${data.brand} ${data.model} self-drive rental car`;
-  const saved: { src: string; alt: string }[] = [];
-  if (files.length) await fs.mkdir(UPLOAD_DIR, { recursive: true });
-  for (const [i, f] of files.entries()) {
+  async function saveOne(f: File, i: number) {
     const name = `${slug}-${Date.now()}-${i}.${TYPES[f.type]}`;
     await fs.writeFile(path.join(UPLOAD_DIR, name), Buffer.from(await f.arrayBuffer()));
-    saved.push({ src: `/uploads/cars/${name}`, alt });
+    return { src: `/uploads/cars/${name}`, alt };
   }
-  const images = [...kept.map((i) => ({ ...i, alt })), ...saved];
+  if (allFiles.length) await fs.mkdir(UPLOAD_DIR, { recursive: true });
+  const coverSaved = coverFile ? await saveOne(coverFile, 0) : null;
+  const gallerySaved: { src: string; alt: string }[] = [];
+  for (const [i, f] of files.entries()) gallerySaved.push(await saveOne(f, i + 1));
+  const keptImgs = kept.map((i) => ({ ...i, alt }));
+  const images = coverSaved ? [coverSaved, ...keptImgs, ...gallerySaved] : [...keptImgs, ...gallerySaved];
   const car: Car = {
     ...data,
     id: existing?.id ?? `car_${Date.now().toString(36)}`,

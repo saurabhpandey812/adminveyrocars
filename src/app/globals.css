@@ -25,4 +25,4 @@ body { background: var(--color-bone); color: var(--color-ink); font-family: var(
 .rise { animation: rise .8s cubic-bezier(.2,.7,.2,1) both; }
 .rise-2 { animation-delay: .12s; } .rise-3 { animation-delay: .24s; }
 @media (prefers-reduced-motion: reduce) { .rise { animation: none; } html { scroll-behavior: auto; } }
-.card { background: #fff; border: 1px solid var(--color-line); }
+.card { background: #fff; border: 1px solid var(--color-line); box-shadow: 0 1px 2px color-mix(in srgb, var(--color-ink) 4%, transparent); }
