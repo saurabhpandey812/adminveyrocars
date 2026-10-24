@@ -1,14 +1,7 @@
 import "server-only";
-import { readDB } from "@/server/db";
+import { readDBSafe } from "@/server/db";
 
-export const getAllCars = async () => {
-  try {
-    return (await readDB()).cars;
-  } catch (err) {
-    console.error("[cars] getAllCars:", err);
-    return [];
-  }
-};
+export const getAllCars = async () => (await readDBSafe()).cars;
 export const getCars = async () => (await getAllCars()).filter((c) => c.status === "available");
 export const getCarBySlug = async (slug: string) => (await getCars()).find((c) => c.slug === slug);
 export const getRelatedCars = async (slug: string, n = 3) => {

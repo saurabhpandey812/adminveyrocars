@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Pencil, Plus, Star, Trash2 } from "lucide-react";
 import { requireAdmin } from "@/server/admin";
-import { getAllCars } from "@/data/cars";
+import { readDBSafe } from "@/server/db";
 import { deleteCarAction, setCarStatusAction } from "@/server/actions/cars";
 import { carStatuses } from "@/lib/validations/car";
 import { inr } from "@/lib/utils/pricing";
@@ -20,7 +20,8 @@ export default async function AdminCars({ searchParams }: { searchParams: SP }) 
   const p = await searchParams;
   const q = (p.q ?? "").toLowerCase(), st = p.status ?? "all";
   const { page, perPage } = parsePageParams(p);
-  const all = await getAllCars();
+  const db = await readDBSafe();
+  const all = db.cars;
   const list = all.filter(
     (c) =>
       (`${c.brand} ${c.model} ${c.carNumber}`).toLowerCase().includes(q) &&
@@ -32,6 +33,11 @@ export default async function AdminCars({ searchParams }: { searchParams: SP }) 
   return (
     <>
       <PageHeader title="Cars" action={<Link href="/admin/cars/new" className="btn btn-dark"><Plus size={16} aria-hidden /> Add car</Link>} />
+      {!db.ok && (
+        <p role="alert" className="mb-4 border border-amber-300 bg-amber-50 p-3 text-sm">
+          Database se data nahi mila: {db.error ?? "connection failed"}. Atlas Network Access me Vercel IPs / 0.0.0.0/0 allow karo.
+        </p>
+      )}
       {p.saved && <p role="status" className="mb-4 border border-emerald-300 bg-emerald-50 p-3 text-sm">Saved</p>}
       {p.deleted && <p role="status" className="mb-4 border border-emerald-300 bg-emerald-50 p-3 text-sm">Deleted</p>}
       {p.error === "has-bookings" && <p role="alert" className="mb-4 border border-red-300 bg-red-50 p-3 text-sm">Active bookings exist — set unavailable or finish them first.</p>}

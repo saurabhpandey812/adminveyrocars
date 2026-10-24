@@ -7,13 +7,13 @@ declare global {
   var __mongooseConn: Promise<typeof mongoose> | undefined;
 }
 
-/** Fast fail on serverless — don't hang login/pages for 10s+ */
+/** Serverless-friendly timeouts (login itself does not wait on Mongo). */
 const CONNECT_OPTS = {
   bufferCommands: false,
-  serverSelectionTimeoutMS: 5_000,
-  connectTimeoutMS: 5_000,
-  socketTimeoutMS: 20_000,
-  maxPoolSize: 5,
+  serverSelectionTimeoutMS: 12_000,
+  connectTimeoutMS: 12_000,
+  socketTimeoutMS: 45_000,
+  maxPoolSize: 10,
 } as const;
 
 export async function connectDB() {

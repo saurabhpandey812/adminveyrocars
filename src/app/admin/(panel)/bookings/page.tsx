@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requireAdmin } from "@/server/admin";
-import { readDB } from "@/server/db";
+import { readDBSafe } from "@/server/db";
 import { setBookingStatusAction } from "@/server/actions/bookings";
 import { inr } from "@/lib/utils/pricing";
 import { PageHeader } from "@/components/admin/PageHeader";
@@ -18,7 +18,7 @@ export default async function AdminBookings({ searchParams }: { searchParams: Pr
   const p = await searchParams;
   const st = p.status ?? "all";
   const { page, perPage } = parsePageParams(p);
-  const db = await readDB();
+  const db = await readDBSafe();
   const list = db.bookings.filter((b) => st === "all" || b.status === st).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const sliced = slicePage(list, page, perPage);
   const name = (slug: string) => {
@@ -35,6 +35,11 @@ export default async function AdminBookings({ searchParams }: { searchParams: Pr
   return (
     <>
       <PageHeader title="Bookings" />
+      {!db.ok && (
+        <p role="alert" className="mb-4 border border-amber-300 bg-amber-50 p-3 text-sm">
+          Database se data nahi mila: {db.error ?? "connection failed"}. Atlas Network Access check karo.
+        </p>
+      )}
       <nav aria-label="Filter by status" className="mb-4 flex flex-wrap gap-2">
         {tabs.map((t) => (
           <Link

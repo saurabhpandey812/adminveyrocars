@@ -27,64 +27,75 @@ function strip<T extends { id: string }>(doc: T & { _id?: unknown; __v?: unknown
   return rest as T;
 }
 
-const EMPTY: DB = { cars: [], bookings: [], customers: [] };
-
 async function ensureSeeded() {
   if (global.__veyroSeeded) return;
-  const count = await CarModel.countDocuments().maxTimeMS(4000);
-  if (count > 0) {
+  try {
+    const count = await CarModel.countDocuments();
+    if (count > 0) {
+      global.__veyroSeeded = true;
+      return;
+    }
+    const { customers, bookings } = seedBookings(seedCars);
+    await CarModel.insertMany(seedCars);
+    if (customers.length) await CustomerModel.insertMany(customers);
+    if (bookings.length) await BookingModel.insertMany(bookings);
     global.__veyroSeeded = true;
-    return;
+  } catch (err) {
+    console.error("[db] ensureSeeded:", err);
   }
-  const { customers, bookings } = seedBookings(seedCars);
-  await CarModel.insertMany(seedCars);
-  if (customers.length) await CustomerModel.insertMany(customers);
-  if (bookings.length) await BookingModel.insertMany(bookings);
-  global.__veyroSeeded = true;
 }
 
 async function backfillCarNumbers() {
   if (global.__veyroBackfilled) return;
-  const missing = await CarModel.find({
-    $or: [{ carNumber: { $exists: false } }, { carNumber: "" }, { carNumber: null }],
-  })
-    .maxTimeMS(4000)
-    .lean();
-  if (!missing.length) {
+  try {
+    const missing = await CarModel.find({
+      $or: [{ carNumber: { $exists: false } }, { carNumber: "" }, { carNumber: null }],
+    }).lean();
+    if (!missing.length) {
+      global.__veyroBackfilled = true;
+      return;
+    }
+    await Promise.all(
+      missing.map((c, i) => {
+        const fromSeed = seedCars.find((s) => s.id === c.id || s.slug === c.slug);
+        const carNumber = fromSeed?.carNumber ?? `UP32 CA ${String(i + 1).padStart(4, "0")}`;
+        return CarModel.updateOne({ id: c.id }, { $set: { carNumber } });
+      }),
+    );
     global.__veyroBackfilled = true;
-    return;
+  } catch (err) {
+    console.error("[db] backfillCarNumbers:", err);
   }
-  await Promise.all(
-    missing.map((c, i) => {
-      const fromSeed = seedCars.find((s) => s.id === c.id || s.slug === c.slug);
-      const carNumber = fromSeed?.carNumber ?? `UP32 CA ${String(i + 1).padStart(4, "0")}`;
-      return CarModel.updateOne({ id: c.id }, { $set: { carNumber } });
-    }),
-  );
-  global.__veyroBackfilled = true;
 }
 
 export async function readDB(): Promise<DB> {
+  await connectDB();
+  await ensureSeeded();
+  await backfillCarNumbers();
+  const [cars, bookings, customers] = await Promise.all([
+    CarModel.find().lean(),
+    BookingModel.find().lean(),
+    CustomerModel.find().lean(),
+  ]);
+  return {
+    cars: cars.map((c) => {
+      const car = strip(c as unknown as Car);
+      return { ...car, carNumber: car.carNumber || "—" };
+    }),
+    bookings: bookings.map((b) => strip(b as unknown as Booking)),
+    customers: customers.map((c) => strip(c as unknown as Customer)),
+  };
+}
+
+/** Safe read for UI pages — never throws; returns empty only if connect truly fails. */
+export async function readDBSafe(): Promise<DB & { ok: boolean; error?: string }> {
   try {
-    await connectDB();
-    await ensureSeeded();
-    await backfillCarNumbers();
-    const [cars, bookings, customers] = await Promise.all([
-      CarModel.find().lean(),
-      BookingModel.find().lean(),
-      CustomerModel.find().lean(),
-    ]);
-    return {
-      cars: cars.map((c) => {
-        const car = strip(c as unknown as Car);
-        return { ...car, carNumber: car.carNumber || "—" };
-      }),
-      bookings: bookings.map((b) => strip(b as unknown as Booking)),
-      customers: customers.map((c) => strip(c as unknown as Customer)),
-    };
+    const db = await readDB();
+    return { ...db, ok: true };
   } catch (err) {
-    console.error("[db] readDB:", err);
-    return EMPTY;
+    const message = err instanceof Error ? err.message : "Database unavailable";
+    console.error("[db] readDBSafe:", err);
+    return { cars: [], bookings: [], customers: [], ok: false, error: message };
   }
 }
 

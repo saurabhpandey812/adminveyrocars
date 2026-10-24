@@ -1,5 +1,5 @@
 import { requireAdmin } from "@/server/admin";
-import { readDB } from "@/server/db";
+import { readDBSafe } from "@/server/db";
 import { inr } from "@/lib/utils/pricing";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { DataTable } from "@/components/admin/DataTable";
@@ -11,7 +11,7 @@ export default async function AdminCustomers({ searchParams }: { searchParams: P
   await requireAdmin();
   const p = await searchParams;
   const { page, perPage } = parsePageParams(p);
-  const db = await readDB();
+  const db = await readDBSafe();
   const rows = db.customers
     .map((c) => {
       const bs = db.bookings.filter((b) => b.userId === c.id);
@@ -25,6 +25,11 @@ export default async function AdminCustomers({ searchParams }: { searchParams: P
   return (
     <>
       <PageHeader title="Customers" />
+      {!db.ok && (
+        <p role="alert" className="mb-4 border border-amber-300 bg-amber-50 p-3 text-sm">
+          Database se data nahi mila: {db.error ?? "connection failed"}. Atlas Network Access check karo.
+        </p>
+      )}
       <DataTable
         minWidth="44rem"
         columns={[
