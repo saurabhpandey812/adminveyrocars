@@ -6,12 +6,17 @@ import { setBookingStatus } from "@/server/db";
 import type { BookingStatus } from "@/types/booking";
 
 const ok: BookingStatus[] = ["pending", "confirmed", "completed", "cancelled"];
+
 export async function setBookingStatusAction(fd: FormData) {
   await requireAdmin();
-  const id = String(fd.get("id") ?? ""),
-    status = String(fd.get("status") ?? "") as BookingStatus;
-  if (!ok.includes(status)) return;
+  const id = String(fd.get("id") ?? "").trim();
+  const status = String(fd.get("status") ?? "") as BookingStatus;
+  if (!id || !ok.includes(status)) return;
+
   await setBookingStatus(id, status);
-  revalidatePath("/", "layout");
+
+  revalidatePath("/admin");
+  revalidatePath("/admin/bookings");
+  revalidatePath("/admin/customers");
   await revalidateSite();
 }

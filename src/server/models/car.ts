@@ -22,7 +22,7 @@ const CarSchema = new Schema(
     featured: { type: Boolean, default: false },
     status: { type: String, required: true, enum: ["available", "unavailable", "maintenance"], default: "available" },
   },
-  { timestamps: true, versionKey: false },
+  { timestamps: true, versionKey: false, collection: "cars" },
 );
 
 export type CarDoc = InferSchemaType<typeof CarSchema>;

@@ -130,7 +130,8 @@ export async function deleteCar(id: string) {
 
 export async function setBookingStatus(id: string, status: Booking["status"]) {
   await connectDB();
-  await BookingModel.updateOne({ id }, { $set: { status } });
+  const res = await BookingModel.updateOne({ id }, { $set: { status } });
+  if (res.matchedCount === 0) throw new Error(`Booking not found: ${id}`);
 }
 
 export async function clearDemoData() {

@@ -10,7 +10,7 @@ const CustomerSchema = new Schema(
     createdAt: { type: String, required: true },
     demo: { type: Boolean, default: false },
   },
-  { versionKey: false, strict: false },
+  { versionKey: false, strict: false, collection: "customers" },
 );
 
 export type CustomerDoc = InferSchemaType<typeof CustomerSchema>;

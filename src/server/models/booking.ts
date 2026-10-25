@@ -20,7 +20,7 @@ const BookingSchema = new Schema(
     demo: { type: Boolean, default: false },
     createdAt: { type: String, required: true },
   },
-  { versionKey: false },
+  { versionKey: false, collection: "bookings" },
 );
 
 export type BookingDoc = InferSchemaType<typeof BookingSchema>;
