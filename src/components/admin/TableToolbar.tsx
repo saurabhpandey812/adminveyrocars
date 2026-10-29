@@ -13,6 +13,9 @@ export function TableToolbar({
   searchPlaceholder = "Search",
   searchName = "q",
   statusName = "status",
+  date,
+  dateName = "day",
+  dateLabel = "Check date",
   extraParams,
 }: {
   action: string;
@@ -22,6 +25,10 @@ export function TableToolbar({
   searchPlaceholder?: string;
   searchName?: string;
   statusName?: string;
+  /** Optional date next to status (e.g. cars free on this day) */
+  date?: string;
+  dateName?: string;
+  dateLabel?: string;
   /** Preserve pagination keys etc. when filtering */
   extraParams?: Record<string, string>;
 }) {
@@ -81,6 +88,17 @@ export function TableToolbar({
           </option>
         ))}
       </select>
+      {date !== undefined && (
+        <input
+          type="date"
+          name={dateName}
+          defaultValue={date}
+          aria-label={dateLabel}
+          title={dateLabel}
+          className="field !w-auto shrink-0 basis-[11rem]"
+          onChange={() => formRef.current && go(formRef.current)}
+        />
+      )}
     </form>
   );
 }

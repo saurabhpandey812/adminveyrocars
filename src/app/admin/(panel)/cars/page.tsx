@@ -5,6 +5,7 @@ import { readDBSafe } from "@/server/db";
 import { deleteCarAction, setCarStatusAction } from "@/server/actions/cars";
 import { carStatuses } from "@/lib/validations/car";
 import { inr } from "@/lib/utils/pricing";
+import { carAvailableOnDay } from "@/lib/availability";
 import { PageHeader } from "@/components/admin/PageHeader";
 import { DataTable } from "@/components/admin/DataTable";
 import { TableToolbar } from "@/components/admin/TableToolbar";
@@ -13,22 +14,30 @@ import { ConfirmButton, StatusSelect } from "@/components/admin/controls";
 import { AdminImage } from "@/components/admin/AdminImage";
 
 export const metadata = { title: "Cars" };
+export const dynamic = "force-dynamic";
 type SP = Promise<Record<string, string | undefined>>;
 
 export default async function AdminCars({ searchParams }: { searchParams: SP }) {
   await requireAdmin();
   const p = await searchParams;
   const q = (p.q ?? "").toLowerCase(), st = p.status ?? "all";
+  const day = (p.day ?? "").trim();
   const { page, perPage } = parsePageParams(p);
   const db = await readDBSafe();
   const all = db.cars;
   const list = all.filter(
     (c) =>
       (`${c.brand} ${c.model} ${c.carNumber}`).toLowerCase().includes(q) &&
-      (st === "all" || c.status === st),
+      (st === "all" || c.status === st) &&
+      (!day || carAvailableOnDay(c, db.bookings, day)),
   );
   const sliced = slicePage(list, page, perPage);
-  const keep = { q: p.q, status: st === "all" ? undefined : st, perPage: String(sliced.perPage) };
+  const keep = {
+    q: p.q,
+    status: st === "all" ? undefined : st,
+    day: day || undefined,
+    perPage: String(sliced.perPage),
+  };
 
   return (
     <>
@@ -45,6 +54,7 @@ export default async function AdminCars({ searchParams }: { searchParams: SP }) 
         action="/admin/cars"
         q={p.q ?? ""}
         status={st}
+        date={day}
         searchPlaceholder="Search cars"
         extraParams={{ perPage: String(sliced.perPage) }}
         statusOptions={[
@@ -52,6 +62,11 @@ export default async function AdminCars({ searchParams }: { searchParams: SP }) 
           ...carStatuses.map((s) => ({ value: s, label: s })),
         ]}
       />
+      {day && (
+        <p className="mb-3 text-sm text-mute">
+          {list.length} free on <span className="font-medium text-ink">{day}</span> (no pending/confirmed booking)
+        </p>
+      )}
       <DataTable
         minWidth="62rem"
         columns={[
@@ -66,7 +81,7 @@ export default async function AdminCars({ searchParams }: { searchParams: SP }) 
         isEmpty={list.length === 0}
         empty={
           <div className="card p-10 text-center">
-            <p className="display text-3xl">No cars</p>
+            <p className="display text-3xl">{day ? "No free cars on this date" : "No cars"}</p>
             <Link href="/admin/cars/new" className="btn btn-dark mt-4">Add car</Link>
           </div>
         }
